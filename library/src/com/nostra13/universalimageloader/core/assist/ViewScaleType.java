@@ -20,14 +20,14 @@ import android.widget.ImageView.ScaleType;
 
 /**
  * Simplify {@linkplain ScaleType ImageView's scale type} to 2 types: {@link #FIT_INSIDE} and {@link #CROP}
- * 
+ *
  * @author Sergey Tarasevich (nostra13[at]gmail[dot]com)
  * @since 1.6.1
  */
 public enum ViewScaleType {
 	/**
-	 * Scale the image uniformly (maintain the image's aspect ratio) so that both dimensions (width and height) of the
-	 * image will be equal to or less the corresponding dimension of the view.
+	 * Scale the image uniformly (maintain the image's aspect ratio) so that at least one dimension (width or height) of
+	 * the image will be equal to or less the corresponding dimension of the view.
 	 */
 	FIT_INSIDE,
 	/**
@@ -38,7 +38,7 @@ public enum ViewScaleType {
 
 	/**
 	 * Defines scale type of ImageView.
-	 * 
+	 *
 	 * @param imageView {@link ImageView}
 	 * @return {@link #FIT_INSIDE} for
 	 *         <ul>
@@ -54,8 +54,6 @@ public enum ViewScaleType {
 	 *         <li>{@link ScaleType#CENTER_CROP}</li>
 	 *         <li>{@link ScaleType#MATRIX}</li>
 	 *         </ul>
-	 *         ,
-	 * 
 	 */
 	public static ViewScaleType fromImageView(ImageView imageView) {
 		switch (imageView.getScaleType()) {

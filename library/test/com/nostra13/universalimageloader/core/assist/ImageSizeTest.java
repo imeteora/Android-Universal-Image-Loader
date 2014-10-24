@@ -1,24 +1,25 @@
 package com.nostra13.universalimageloader.core.assist;
 
-import org.fest.assertions.api.Assertions;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-
 import android.app.Activity;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-
+import com.nostra13.universalimageloader.core.imageaware.ImageAware;
+import com.nostra13.universalimageloader.core.imageaware.ImageViewAware;
 import com.nostra13.universalimageloader.utils.ImageSizeUtils;
+import org.fest.assertions.api.Assertions;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public class ImageSizeTest {
 	private Activity mActivity;
 	private ImageView mView;
+	private ImageAware mImageAware;
 
 	@Before
 	public void setUp() throws Exception {
@@ -28,6 +29,8 @@ public class ImageSizeTest {
 		mView = new TestImageView(mActivity);
 		mView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 		mView.measure(View.MeasureSpec.makeMeasureSpec(250, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(250, View.MeasureSpec.EXACTLY));
+
+		mImageAware = new ImageViewAware(mView);
 	}
 
 	@Test
@@ -37,7 +40,7 @@ public class ImageSizeTest {
 		mView.layout(0, 0, 200, 200);
 
 		ImageSize expected = new ImageSize(200, 200);
-		ImageSize result = ImageSizeUtils.defineTargetSizeForView(mView, 590, 590);
+		ImageSize result = ImageSizeUtils.defineTargetSizeForView(mImageAware, new ImageSize(590, 590));
 		Assertions.assertThat(result).isNotNull();
 		Assertions.assertThat(result.getWidth()).isEqualTo(expected.getWidth());
 		Assertions.assertThat(result.getHeight()).isEqualTo(expected.getHeight());
@@ -58,7 +61,7 @@ public class ImageSizeTest {
 		mView.layout(0, 0, 200, 200);
 
 		ImageSize expected = new ImageSize(500, 500);
-		ImageSize result = ImageSizeUtils.defineTargetSizeForView(mView, 500, 500);
+		ImageSize result = ImageSizeUtils.defineTargetSizeForView(mImageAware, new ImageSize(500, 500));
 		Assertions.assertThat(result).isNotNull().isEqualsToByComparingFields(expected);
 	}
 
@@ -68,23 +71,97 @@ public class ImageSizeTest {
 		mView.setLayoutParams(new FrameLayout.LayoutParams(300, 300));
 
 		ImageSize expected = new ImageSize(300, 300);
-		ImageSize result = ImageSizeUtils.defineTargetSizeForView(mView, 500, 500);
+		ImageSize result = ImageSizeUtils.defineTargetSizeForView(mImageAware, new ImageSize(500, 500));
 		Assertions.assertThat(result).isNotNull().isEqualsToByComparingFields(expected);
 	}
 
 	@Test
-	public void testGetImageSizeScaleTo_useImageCacheMaxSize() throws Exception {
+	public void testGetImageSizeScaleTo_useImageConfigMaxSize() throws Exception {
 		ImageSize expected = new ImageSize(500, 500);
-		ImageSize result = ImageSizeUtils.defineTargetSizeForView(mView, 500, 500);
+		ImageSize result = ImageSizeUtils.defineTargetSizeForView(mImageAware, new ImageSize(500, 500));
 		Assertions.assertThat(result).isNotNull().isEqualsToByComparingFields(expected);
 	}
 
 	@Test
-	public void testGetImageSizeScaleTo_useDisplayMetrics() throws Exception {
-		//The default Robolectic disp metrics are 480x800 normal hdpi device basically
-		ImageSize expected = new ImageSize(480, 800);
-		ImageSize result = ImageSizeUtils.defineTargetSizeForView(mView, 0, 0);
-		Assertions.assertThat(result).isNotNull().isEqualsToByComparingFields(expected);
+	public void testComputeImageSampleSize_fitInside() throws Exception {
+		final ViewScaleType scaleType = ViewScaleType.FIT_INSIDE;
+		int result;
+
+		ImageSize srcSize = new ImageSize(300, 100);
+		ImageSize targetSize = new ImageSize(30, 10);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(10);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(8);
+
+		srcSize = new ImageSize(300, 100);
+		targetSize = new ImageSize(200, 200);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(1);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(1);
+
+		srcSize = new ImageSize(300, 100);
+		targetSize = new ImageSize(55, 40);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(5);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(4);
+
+		srcSize = new ImageSize(300, 100);
+		targetSize = new ImageSize(30, 40);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(10);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(8);
+
+		srcSize = new ImageSize(5000, 70);
+		targetSize = new ImageSize(2000, 30);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(3);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(4);
+	}
+
+	@Test
+	public void testComputeImageSampleSize_centerCrop() throws Exception {
+		final ViewScaleType scaleType = ViewScaleType.CROP;
+		int result;
+
+		ImageSize srcSize = new ImageSize(300, 100);
+		ImageSize targetSize = new ImageSize(30, 10);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(10);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(8);
+
+		srcSize = new ImageSize(300, 100);
+		targetSize = new ImageSize(200, 200);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(1);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(1);
+
+		srcSize = new ImageSize(300, 100);
+		targetSize = new ImageSize(55, 40);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(2);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(2);
+
+		srcSize = new ImageSize(300, 100);
+		targetSize = new ImageSize(30, 30);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(3);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(2);
+
+		srcSize = new ImageSize(5000, 70);
+		targetSize = new ImageSize(300, 30);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, false);
+		Assertions.assertThat(result).isEqualTo(3);
+		result = ImageSizeUtils.computeImageSampleSize(srcSize, targetSize, scaleType, true);
+		Assertions.assertThat(result).isEqualTo(4);
 	}
 
 	/** Fixes {@link NoSuchMethodError} for <code>ImageView#onLayout(...)</code> */
